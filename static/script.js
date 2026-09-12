@@ -1,333 +1,283 @@
-let chats = JSON.parse(localStorage.getItem("chats")) || {};
-let currentChatId = localStorage.getItem("currentChatId") || null;
-let settings = JSON.parse(localStorage.getItem("settings")) || { fontSize: 14, speechRate: 1, voiceType: "ar", darkMode: false };
-let stats = JSON.parse(localStorage.getItem("stats")) || { totalMessages: 0, totalChats: 0, wordCount: 0 };
+// ============ عناصر DOM ============
+const chatEl      = document.getElementById('chat');
+const msgBox       = document.getElementById('message');
+const sendBtn       = document.getElementById('send');
+const modeSel       = document.getElementById('mode');
+const sidebar       = document.getElementById('sidebar');
+const overlay       = document.getElementById('overlay');
+const menuBtn       = document.getElementById('menuBtn');
+const newChatBtn    = document.getElementById('newChatBtn');
+const chatListEl    = document.getElementById('chatList');
+const searchInput   = document.getElementById('searchChats');
+const exportBtn     = document.getElementById('exportBtn');
+const deleteAllBtn  = document.getElementById('deleteAllBtn');
+const settingsBtn   = document.getElementById('settingsBtn');
+const settingsModal = document.getElementById('settingsModal');
+const closeSettings = document.getElementById('closeSettings');
+const fontMinus     = document.getElementById('fontMinus');
+const fontPlus      = document.getElementById('fontPlus');
+const fontValue     = document.getElementById('fontValue');
+const darkToggle    = document.getElementById('darkToggle');
+const chatTitleEl   = document.getElementById('chatTitle');
 
-const chatEl = document.getElementById("chat");
-const inputEl = document.getElementById("input");
-const sendBtn = document.getElementById("send");
-const modeEl = { value: "general" };
-const modeBtn = document.getElementById("modeBtn");
-const modeLabel = document.getElementById("modeLabel");
-const modeDropdown = document.getElementById("modeDropdown");
-const modeOptions = document.querySelectorAll(".mode-option");
+const STORAGE_KEY = 'leo_copilot_sessions_v1';
+const SETTINGS_KEY = 'leo_copilot_settings_v1';
 
-modeBtn.onclick = (e) => {
-  e.stopPropagation();
-  modeDropdown.classList.toggle("show");
-  modeBtn.classList.toggle("open");
-};
-document.addEventListener("click", () => {
-  modeDropdown.classList.remove("show");
-  modeBtn.classList.remove("open");
-});
-modeOptions.forEach(opt => {
-  opt.onclick = () => {
-    modeOptions.forEach(o => o.classList.remove("active"));
-    opt.classList.add("active");
-    modeLabel.textContent = opt.textContent;
-    modeEl.value = opt.dataset.value;
-    modeDropdown.classList.remove("show");
-    modeBtn.classList.remove("open");
-  };
-});
-const chatListEl = document.getElementById("chatList");
-const settingsModal = document.getElementById("settingsModal");
-const statsModal = document.getElementById("statsModal");
-const overlay = document.getElementById("overlay");
-const voiceInputBtn = document.getElementById("voiceInput");
-const speakOutputBtn = document.getElementById("speakOutput");
+// ============ الحالة ============
+let sessions = loadSessions();          // { id, title, mode, messages: [{role, content}], createdAt }
+let currentId = null;
 
-function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
-
-function createNewChat() {
-  const id = generateId();
-  chats[id] = { id, title: "محادثة جديدة", messages: [], created: new Date(), color: getRandomColor() };
-  currentChatId = id;
-  localStorage.setItem("chats", JSON.stringify(chats));
-  localStorage.setItem("currentChatId", currentChatId);
-  stats.totalChats++;
-  localStorage.setItem("stats", JSON.stringify(stats));
-  renderChats();
-  renderChat();
-}
-
-function getRandomColor() {
-  const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F"];
-  return colors[Math.floor(Math.random() * colors.length)];
-}
-
-function renderChats() {
-  chatListEl.innerHTML = "";
-  Object.values(chats).forEach(chat => {
-    const item = document.createElement("div");
-    item.className = `chat-item ${chat.id === currentChatId ? "active" : ""}`;
-    item.innerHTML = `<span class="chat-item-title">${chat.title}</span><button class="del-one">✕</button>`;
-    item.onclick = () => { currentChatId = chat.id; localStorage.setItem("currentChatId", currentChatId); renderChats(); renderChat(); };
-    item.querySelector(".del-one").onclick = (e) => { e.stopPropagation(); delete chats[currentChatId]; localStorage.setItem("chats", JSON.stringify(chats)); currentChatId = Object.keys(chats)[0] || null; if (!currentChatId) createNewChat(); renderChats(); renderChat(); };
-    chatListEl.appendChild(item);
-  });
-}
-
-function renderChat() {
-  if (!currentChatId) { createNewChat(); return; }
-  const chat = chats[currentChatId];
-  if (!chat) return;
-  
-  chatEl.innerHTML = "";
-  document.getElementById("chatTitle").textContent = chat.title;
-  
-  chat.messages.forEach((msg, idx) => {
-    const msgEl = document.createElement("div");
-    msgEl.className = `msg ${msg.role}`;
-    msgEl.style.backgroundColor = msg.role === "user" ? "unset" : `${chat.color}20`;
-    msgEl.innerHTML = `
-      <div>${msg.content}</div>
-      ${msg.role === "bot" ? `<div class="msg-actions"><button class="msg-action-btn" id="speakBtn-${idx}" onclick="speakMsg('${idx}')">🔊 استماع</button></div>` : ""}
-      ${msg.reactions ? `<div style="font-size:12px;margin-top:6px;">${Object.entries(msg.reactions).map(([e, c]) => `${e} ${c}`).join(" ")}</div>` : ""}
-    `;
-    chatEl.appendChild(msgEl);
-  });
-  chatEl.scrollTop = chatEl.scrollHeight;
-}
-
-
-function togglePin(idx) {
-  const msg = chats[currentChatId].messages[idx];
-  msg.pinned = !msg.pinned;
-  localStorage.setItem("chats", JSON.stringify(chats));
-  renderChat();
-}
-
-function copyMsg(idx) {
-  const msg = chats[currentChatId].messages[idx].content;
-  navigator.clipboard.writeText(msg);
-  alert("تم النسخ!");
-}
-
-function deleteMsg(idx) {
-  chats[currentChatId].messages.splice(idx, 1);
-  localStorage.setItem("chats", JSON.stringify(chats));
-  renderChat();
-}
-
-function editMsg(idx) {
-  const msg = chats[currentChatId].messages[idx];
-  if (msg.role === "user") {
-    inputEl.value = msg.content;
-    deleteMsg(idx);
-  }
-}
-
-function toggleReaction(idx, emoji) {
-  const msg = chats[currentChatId].messages[idx];
-  if (!msg.reactions) msg.reactions = {};
-  msg.reactions[emoji] = (msg.reactions[emoji] || 0) + 1;
-  localStorage.setItem("chats", JSON.stringify(chats));
-  renderChat();
-}
-
-function speakMsg(idx) {
-  const btn = document.getElementById(`speakBtn-${idx}`);
-  if (speechSynthesis.speaking) {
-    speechSynthesis.cancel();
-    if (btn) btn.textContent = "🔊 استماع";
-    return;
-  }
-  const msg = chats[currentChatId].messages[idx].content;
-  const utterance = new SpeechSynthesisUtterance(msg);
-  utterance.rate = parseFloat(settings.speechRate);
-  utterance.lang = settings.voiceType === "ar" ? "ar-SA" : "en-US";
-  utterance.onend = () => { if (btn) btn.textContent = "🔊 استماع"; };
-  if (btn) btn.textContent = "⏹️ إيقاف";
-  speechSynthesis.speak(utterance);
-}
-
-let mediaRecorder;
-let audioChunks = [];
-
-const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognitionAPI) {
-  const recognition = new SpeechRecognitionAPI();
-  recognition.lang = "ar-SA";
-  recognition.interimResults = false;
-  recognition.continuous = false;
-  let listening = false;
-
-  voiceInputBtn.onclick = () => {
-    if (listening) { recognition.stop(); return; }
-    recognition.start();
-  };
-  recognition.onstart = () => { listening = true; voiceInputBtn.classList.add("recording"); };
-  recognition.onend = () => { listening = false; voiceInputBtn.classList.remove("recording"); };
-  recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    inputEl.value += (inputEl.value ? " " : "") + transcript;
-  };
-  recognition.onerror = () => { listening = false; voiceInputBtn.classList.remove("recording"); };
-} else {
-  voiceInputBtn.onclick = () => alert("المتصفح ده مش بيدعم تحويل الصوت لنص");
-}
-
-
-sendBtn.onclick = async () => {
-  const message = inputEl.value.trim();
-  if (!message) return;
-  
-  if (!currentChatId) createNewChat();
-  
-  const chat = chats[currentChatId];
-  chat.messages.push({ role: "user", content: message });
-  
-  stats.totalMessages++;
-  stats.wordCount += message.split(" ").length;
-  localStorage.setItem("stats", JSON.stringify(stats));
-  
-  inputEl.value = "";
-  renderChat();
-  
-  if (chat.messages.length === 1) {
-    chat.title = message.substring(0, 30) + (message.length > 30 ? "..." : "");
-  }
-  
-  const typingEl = document.createElement("div");
-  typingEl.className = "msg bot typing";
-  typingEl.textContent = "جاري الكتابة...";
-  chatEl.appendChild(typingEl);
-  chatEl.scrollTop = chatEl.scrollHeight;
-  
+// ============ تحميل/حفظ ============
+function loadSessions() {
   try {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message,
-        mode: modeEl.value,
-        history: chat.messages.slice(0, -1)
-      })
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function saveSessions() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    return raw ? JSON.parse(raw) : { fontSize: 14, alwaysDark: true };
+  } catch (e) { return { fontSize: 14, alwaysDark: true }; }
+}
+
+function saveSettings(s) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+}
+
+let settings = loadSettings();
+applySettings();
+
+function applySettings() {
+  document.documentElement.style.setProperty('--font-size', settings.fontSize + 'px');
+  fontValue.textContent = settings.fontSize;
+  darkToggle.checked = settings.alwaysDark;
+}
+
+// ============ إدارة الجلسات ============
+function newSession() {
+  const s = {
+    id: 'c_' + Date.now(),
+    title: 'محادثة جديدة',
+    mode: modeSel.value || 'general',
+    messages: [],
+    createdAt: Date.now(),
+  };
+  sessions.unshift(s);
+  currentId = s.id;
+  saveSessions();
+  renderSidebar();
+  renderChat();
+}
+
+function getCurrent() {
+  return sessions.find(s => s.id === currentId);
+}
+
+function openSession(id) {
+  currentId = id;
+  const s = getCurrent();
+  if (s) modeSel.value = s.mode || 'general';
+  renderSidebar();
+  renderChat();
+  closeSidebarOnMobile();
+}
+
+function deleteSession(id, evt) {
+  if (evt) evt.stopPropagation();
+  sessions = sessions.filter(s => s.id !== id);
+  saveSessions();
+  if (currentId === id) {
+    currentId = sessions.length ? sessions[0].id : null;
+    if (!currentId) newSession();
+  }
+  renderSidebar();
+  renderChat();
+}
+
+function deleteAll() {
+  if (!confirm('متأكد إنك عايز تمسح كل المحادثات؟ الإجراء ده لا يمكن التراجع عنه.')) return;
+  sessions = [];
+  saveSessions();
+  newSession();
+}
+
+function exportAll() {
+  const blob = new Blob([JSON.stringify(sessions, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `leo-copilot-chats-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============ عرض الشريط الجانبي ============
+function renderSidebar(filter = '') {
+  chatListEl.innerHTML = '';
+  const q = filter.trim().toLowerCase();
+  sessions
+    .filter(s => !q || s.title.toLowerCase().includes(q))
+    .forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'chat-item' + (s.id === currentId ? ' active' : '');
+      item.onclick = () => openSession(s.id);
+
+      const title = document.createElement('span');
+      title.className = 'chat-item-title';
+      title.textContent = s.title;
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'del-one';
+      delBtn.textContent = '✕';
+      delBtn.onclick = (e) => deleteSession(s.id, e);
+
+      item.appendChild(title);
+      item.appendChild(delBtn);
+      chatListEl.appendChild(item);
     });
-    
-    const data = await response.json();
+}
+
+// ============ عرض الدردشة ============
+function renderChat() {
+  chatEl.innerHTML = '';
+  const s = getCurrent();
+  if (!s) return;
+  chatTitleEl.textContent = s.title === 'محادثة جديدة' ? 'مساعدك الذكي الشامل' : s.title;
+  s.messages.forEach(m => addBubble(m.content, m.role === 'user' ? 'user' : 'bot'));
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function renderMarkdownLite(text) {
+  // تحويل بسيط لكتل الكود ```...``` والأكواد المضمّنة `...`
+  const escaped = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const withBlocks = escaped.replace(/```([\s\S]*?)```/g, (_, code) => {
+    return `<pre><code>${code.trim()}</code></pre>`;
+  });
+  const withInline = withBlocks.replace(/`([^`]+)`/g, '<code>$1</code>');
+  return withInline;
+}
+
+function addBubble(text, cls) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + cls;
+  div.innerHTML = renderMarkdownLite(text);
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return div;
+}
+
+// ============ إرسال الرسائل ============
+async function send() {
+  const text = msgBox.value.trim();
+  if (!text) return;
+  let s = getCurrent();
+  if (!s) { newSession(); s = getCurrent(); }
+
+  s.messages.push({ role: 'user', content: text });
+  if (s.title === 'محادثة جديدة') {
+    s.title = text.slice(0, 30) + (text.length > 30 ? '…' : '');
+  }
+  saveSessions();
+  renderSidebar(searchInput.value);
+  addBubble(text, 'user');
+  msgBox.value = '';
+  autoResize();
+
+  const typingEl = addBubble('...جاري التفكير', 'bot typing');
+
+  try {
+    const res = await fetch('https://leo-copilot-production.up.railway.app/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: text,
+        mode: modeSel.value,
+        history: s.messages.slice(0, -1).slice(-20),
+      }),
+    });
+    const data = await res.json();
     typingEl.remove();
-    chat.messages.push({ role: "bot", content: data.answer });
-    stats.totalMessages++;
-    stats.wordCount += data.answer.split(" ").length;
-    localStorage.setItem("chats", JSON.stringify(chats));
-    localStorage.setItem("stats", JSON.stringify(stats));
-    renderChat();
+
+    if (data.answer) {
+      addBubble(data.answer, 'bot');
+      s.messages.push({ role: 'assistant', content: data.answer });
+    } else {
+      addBubble(data.error || 'خطأ غير معروف', 'bot error');
+    }
+    saveSessions();
   } catch (e) {
     typingEl.remove();
-    chat.messages.push({ role: "bot", content: "❌ حدث خطأ في الاتصال", error: true });
-    renderChat();
+    addBubble('فشل الاتصال بالخادم — تأكد إن السيرفر شغال.', 'bot error');
   }
-};
+}
 
-inputEl.onkeypress = (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendBtn.click();
+function autoResize() {
+  msgBox.style.height = 'auto';
+  msgBox.style.height = Math.min(msgBox.scrollHeight, 120) + 'px';
+}
+
+// ============ الشريط الجانبي: فتح/غلق على الموبايل ============
+function openSidebarOnMobile() {
+  sidebar.classList.add('open');
+  overlay.classList.add('show');
+}
+function closeSidebarOnMobile() {
+  if (window.innerWidth < 900) {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
   }
-};
+}
 
-document.getElementById("settingsBtn").onclick = () => { settingsModal.classList.add("show"); overlay.classList.add("show"); };
-document.getElementById("closeSettings").onclick = () => { settingsModal.classList.remove("show"); overlay.classList.remove("show"); };
+// ============ ربط الأحداث ============
+sendBtn.addEventListener('click', send);
+msgBox.addEventListener('input', autoResize);
+msgBox.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
 
-document.getElementById("darkMode").checked = settings.darkMode;
-document.getElementById("darkMode").onchange = (e) => {
-  settings.darkMode = e.target.checked;
-  document.body.style.filter = settings.darkMode ? "invert(1)" : "none";
-  localStorage.setItem("settings", JSON.stringify(settings));
-};
+newChatBtn.addEventListener('click', () => { newSession(); closeSidebarOnMobile(); });
+menuBtn.addEventListener('click', openSidebarOnMobile);
+overlay.addEventListener('click', closeSidebarOnMobile);
 
-document.getElementById("fontLarger").onclick = () => {
-  if (settings.fontSize < 20) {
-    settings.fontSize += 2;
-    document.documentElement.style.fontSize = settings.fontSize + "px";
-    document.getElementById("fontSize").textContent = settings.fontSize + "px";
-    localStorage.setItem("settings", JSON.stringify(settings));
-  }
-};
+searchInput.addEventListener('input', () => renderSidebar(searchInput.value));
+exportBtn.addEventListener('click', exportAll);
+deleteAllBtn.addEventListener('click', deleteAll);
 
-document.getElementById("fontSmaller").onclick = () => {
-  if (settings.fontSize > 11) {
-    settings.fontSize -= 2;
-    document.documentElement.style.fontSize = settings.fontSize + "px";
-    document.getElementById("fontSize").textContent = settings.fontSize + "px";
-    localStorage.setItem("settings", JSON.stringify(settings));
-  }
-};
+modeSel.addEventListener('change', () => {
+  const s = getCurrent();
+  if (s) { s.mode = modeSel.value; saveSessions(); }
+});
 
-document.getElementById("speechRate").onchange = (e) => {
-  settings.speechRate = e.target.value;
-  localStorage.setItem("settings", JSON.stringify(settings));
-};
+settingsBtn.addEventListener('click', () => settingsModal.classList.add('show'));
+closeSettings.addEventListener('click', () => settingsModal.classList.remove('show'));
 
-document.getElementById("voiceType").onchange = (e) => {
-  settings.voiceType = e.target.value;
-  localStorage.setItem("settings", JSON.stringify(settings));
-};
+fontMinus.addEventListener('click', () => {
+  settings.fontSize = Math.max(11, settings.fontSize - 1);
+  saveSettings(settings); applySettings();
+});
+fontPlus.addEventListener('click', () => {
+  settings.fontSize = Math.min(20, settings.fontSize + 1);
+  saveSettings(settings); applySettings();
+});
+darkToggle.addEventListener('change', () => {
+  settings.alwaysDark = darkToggle.checked;
+  saveSettings(settings);
+  applySettings();
+});
 
-document.getElementById("statsBtn").onclick = () => {
-  const statsContent = document.getElementById("statsContent");
-  statsContent.innerHTML = `
-    <div class="setting-row">
-      <span>عدد المحادثات:</span>
-      <strong>${Object.keys(chats).length}</strong>
-    </div>
-    <div class="setting-row">
-      <span>إجمالي الرسائل:</span>
-      <strong>${stats.totalMessages}</strong>
-    </div>
-    <div class="setting-row">
-      <span>عدد الكلمات:</span>
-      <strong>${stats.wordCount}</strong>
-    </div>
-    <div class="setting-row">
-      <span>متوسط الرسائل/المحادثة:</span>
-      <strong>${Object.keys(chats).length > 0 ? (stats.totalMessages / Object.keys(chats).length).toFixed(1) : 0}</strong>
-    </div>
-  `;
-  statsModal.classList.add("show");
-  overlay.classList.add("show");
-};
-
-document.getElementById("closeStats").onclick = () => { statsModal.classList.remove("show"); overlay.classList.remove("show"); };
-
-document.getElementById("searchInput").onkeyup = (e) => {
-  const search = e.target.value.toLowerCase();
-  chatListEl.childNodes.forEach(el => {
-    const title = el.querySelector(".chat-item-title").textContent.toLowerCase();
-    el.style.display = title.includes(search) ? "" : "none";
-  });
-};
-
-document.getElementById("newChatBtn").onclick = createNewChat;
-
-document.getElementById("clearAllBtn").onclick = () => {
-  if (confirm("هل أنت متأكد من حذف كل المحادثات؟")) {
-    chats = {};
-    currentChatId = null;
-    localStorage.setItem("chats", JSON.stringify(chats));
-    localStorage.setItem("currentChatId", "");
-    createNewChat();
-  }
-};
-
-overlay.onclick = () => { settingsModal.classList.remove("show"); statsModal.classList.remove("show"); sidebarEl.classList.remove("open"); overlay.classList.remove("show"); };
-const menuBtn = document.getElementById("menuBtn");
-const sidebarEl = document.querySelector(".sidebar");
-menuBtn.onclick = () => { sidebarEl.classList.add("open"); overlay.classList.add("show"); };
-
-
-document.documentElement.style.fontSize = settings.fontSize + "px";
-document.getElementById("fontSize").textContent = settings.fontSize + "px";
-if (settings.darkMode) document.body.style.filter = "invert(1)";
-
-if (!currentChatId) createNewChat();
-renderChats();
-renderChat();
-
-document.getElementById("closeSidebarBtn").onclick = () => {
-  sidebarEl.classList.remove("open");
-  overlay.classList.remove("show");
-};
+// ============ التشغيل الأولي ============
+if (sessions.length === 0) {
+  newSession();
+} else {
+  currentId = sessions[0].id;
+  modeSel.value = sessions[0].mode || 'general';
+  renderSidebar();
+  renderChat();
+}

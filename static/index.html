@@ -1,117 +1,129 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LEO Copilot Pro</title>
-  <link rel="stylesheet" href="/static/style2.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LEO Copilot Pro</title>
+<link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <div class="app">
-    <header>
-      <button id="menuBtn" class="icon-btn">☰</button>
-      <div class="title-block">
-        <h1>
-          <span class="pro-badge">PRO</span>
-          LEO Copilot
-          <span class="lion-logo">🦁</span>
-        </h1>
-        <p id="chatTitle">مساعدك الذكي الشامل</p>
-      </div>
-    </header>
 
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <button id="closeSidebarBtn" class="icon-btn">✕</button>
-        <input type="text" id="searchInput" class="sidebar-search" placeholder="بحث في المحادثات...">
-      </div>
-      <div class="sidebar-list" id="chatList"></div>
-      <div class="sidebar-footer">
-        <button class="btn-primary full" id="newChatBtn">+ محادثة جديدة</button>
-        <button class="btn-ghost full" id="statsBtn">📊 الإحصائيات</button>
-        <button class="btn-ghost full" id="settingsBtn">⚙️ الإعدادات</button>
-        <button class="btn-danger full" id="clearAllBtn">🗑️ مسح الكل</button>
-        <div class="dev-credit">
-          <div class="dev-name">Developed by <strong>Mohamed Hassan Taha</strong></div>
-          <div class="dev-links">
-            <a href="https://github.com/oneshoot5010" target="_blank" rel="noopener">GitHub</a>
-            <span>•</span>
-            <a href="https://wa.me/201044947639" target="_blank" rel="noopener">WhatsApp</a>
-          </div>
-        </div>
-      </div>
-    </div>
+<div class="overlay" id="overlay"></div>
 
-    <div class="overlay" id="overlay"></div>
-
-    <div class="chat" id="chat"></div>
-
-    <div class="input-area">
-      <button id="voiceInput" class="icon-btn" title="رسالة صوتية">🎤</button>
-      <textarea id="input" placeholder="اكتب رسالتك هنا..." rows="1"></textarea>
-      <div class="custom-select" id="modeSelect">
-        <button class="mode-btn" id="modeBtn" type="button">
-          <span id="modeLabel">عام</span> <span class="chevron">▾</span>
-        </button>
-        <div class="mode-dropdown" id="modeDropdown">
-          <div class="mode-option active" data-value="general">عام</div>
-          <div class="mode-option" data-value="explain">شرح</div>
-          <div class="mode-option" data-value="code">برمجة</div>
-          <div class="mode-option" data-value="detailed">مفصل</div>
-          <div class="mode-option" data-value="creative">إبداعي</div>
-        </div>
-      </div>
-      <button id="send" class="btn-send">➤</button>
-      <button id="speakOutput" class="icon-btn" title="استماع الرد">🔊</button>
-    </div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <button id="newChatBtn" class="btn-primary full">+ محادثة جديدة</button>
   </div>
 
-  <!-- Modals -->
-  <div class="modal" id="settingsModal">
-    <div class="modal-box">
-      <h2>الإعدادات</h2>
-      <div class="setting-row">
-        <label>Dark Mode</label>
-        <label class="switch">
-          <input type="checkbox" id="darkMode">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="setting-row">
-        <label>حجم الخط</label>
-        <div class="font-controls">
-          <button id="fontSmaller">−</button>
-          <span id="fontSize">14px</span>
-          <button id="fontLarger">+</button>
-        </div>
-      </div>
-      <div class="setting-row">
-        <label>سرعة الكلام</label>
-        <select id="speechRate">
-          <option value="0.5">بطيء</option>
-          <option value="1" selected>عادي</option>
-          <option value="1.5">سريع</option>
-        </select>
-      </div>
-      <div class="setting-row">
-        <label>نوع الصوت</label>
-        <select id="voiceType">
-          <option value="ar">عربي</option>
-          <option value="en">إنجليزي</option>
-        </select>
-      </div>
-      <button class="btn-primary full" id="closeSettings">إغلاق</button>
-    </div>
+  <div class="sidebar-search">
+    <input type="text" id="searchChats" placeholder="بحث في المحادثات...">
   </div>
 
-  <div class="modal" id="statsModal">
-    <div class="modal-box">
-      <h2>إحصائيات المحادثات</h2>
-      <div id="statsContent"></div>
-      <button class="btn-primary full" id="closeStats">إغلاق</button>
+  <div class="sidebar-list" id="chatList"></div>
+
+  <div class="sidebar-footer">
+    <button id="exportBtn" class="btn-ghost full">⬇ تصدير كل المحادثات</button>
+    <button id="deleteAllBtn" class="btn-danger full">🗑 حذف الكل</button>
+    <button id="settingsBtn" class="btn-ghost full">⚙ الإعدادات</button>
+
+    <div class="dev-credit">
+      <div class="dev-name">Developed by <strong>Mohamed Hassan Taha</strong></div>
+      <div class="dev-links">
+        <a href="https://github.com/oneshoot5010" target="_blank" rel="noopener">GitHub</a>
+        <span>•</span>
+        <a href="https://wa.me/201044947639" target="_blank" rel="noopener">WhatsApp</a>
+      </div>
     </div>
   </div>
+</aside>
 
-  <script src="/static/script.js"></script>
+<div class="app">
+  <header>
+    <button id="menuBtn" class="icon-btn">☰</button>
+    <div class="title-block">
+      <h1><span class="lion-logo">🦁</span> LEO Copilot <span class="pro-badge">PRO</span></h1>
+      <p id="chatTitle">مساعدك الذكي الشامل</p>
+    </div>
+    <button id="langBtn" class="icon-btn lang-btn" title="لغة الرد">AR</button>
+    <div class="mode-select" id="modeSelect">
+      <button type="button" id="modeBtn" class="mode-btn">📌 عام</button>
+      <ul id="modeMenu" class="mode-menu">
+        <li data-value="general">📌 عام</li>
+        <li data-value="code">💻 برمجة</li>
+        <li data-value="explain">📚 شرح</li>
+        <li data-value="detailed">📝 مفصّل</li>
+        <li data-value="creative">✨ إبداعي</li>
+      </ul>
+    </div>
+  </header>
+
+  <div id="pinnedBar" class="pinned-bar"></div>
+
+  <div id="chat" class="chat"></div>
+
+  <div class="input-area">
+    <button id="micBtn" class="icon-btn mic-btn" title="إدخال صوتي">🎙️</button>
+    <textarea id="message" placeholder="اكتب سؤالك أو الصق الكود هنا..." rows="1"></textarea>
+    <button id="send">إرسال</button>
+  </div>
+</div>
+
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-box">
+    <h2>🔒 التطبيق مقفول</h2>
+    <input type="password" id="pinInput" inputmode="numeric" maxlength="4" placeholder="ادخل الرقم السري">
+    <button id="unlockBtn" class="btn-primary full">فتح</button>
+    <p class="lock-error" id="lockError"></p>
+  </div>
+</div>
+
+<div class="modal" id="settingsModal">
+  <div class="modal-box">
+    <h2>⚙ الإعدادات</h2>
+
+    <div class="setting-row">
+      <span>حجم الخط</span>
+      <div class="font-controls">
+        <button id="fontMinus">A-</button>
+        <span id="fontValue">14</span>
+        <button id="fontPlus">A+</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <span>الوضع الليلي دائمًا</span>
+      <label class="switch">
+        <input type="checkbox" id="darkToggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="setting-row">
+      <span>قراءة الردود بصوت عالٍ تلقائيًا</span>
+      <label class="switch">
+        <input type="checkbox" id="ttsToggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="setting-block">
+      <span>إحصائيات الاستخدام</span>
+      <div id="statsBox" class="stats-box"></div>
+    </div>
+
+    <div class="setting-block">
+      <span>قفل التطبيق برقم سري (4 أرقام)</span>
+      <div class="pin-controls">
+        <input type="password" id="pinSetupInput" inputmode="numeric" maxlength="4" placeholder="ارقام">
+        <button id="setPinBtn" class="btn-ghost">تفعيل</button>
+        <button id="removePinBtn" class="btn-danger">إلغاء</button>
+      </div>
+    </div>
+
+    <button id="closeSettings" class="btn-primary full">تم</button>
+  </div>
+</div>
+
+<script src="/static/script.js"></script>
 </body>
 </html>
