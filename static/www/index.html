@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LEO Copilot</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- الشريط الجانبي -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <button id="newChatBtn" class="btn-primary full">+ محادثة جديدة</button>
+  </div>
+
+  <div class="sidebar-search">
+    <input type="text" id="searchChats" placeholder="بحث في المحادثات...">
+  </div>
+
+  <div class="sidebar-list" id="chatList"><!-- تُملأ ديناميكيًا --></div>
+
+  <div class="sidebar-footer">
+    <button id="exportBtn" class="btn-ghost full">⬇ تصدير كل المحادثات</button>
+    <button id="deleteAllBtn" class="btn-danger full">🗑 حذف الكل</button>
+    <button id="settingsBtn" class="btn-ghost full">⚙ الإعدادات</button>
+  </div>
+</aside>
+
+<!-- الواجهة الرئيسية -->
+<div class="app">
+  <header>
+    <button id="menuBtn" class="icon-btn">☰</button>
+    <div class="title-block">
+      <h1>🦁 LEO Copilot</h1>
+      <p id="chatTitle">مساعدك الذكي الشامل</p>
+    </div>
+    <select id="mode">
+      <option value="general">عام</option>
+      <option value="code">برمجة</option>
+      <option value="explain">شرح</option>
+      <option value="detailed">مفصّل</option>
+      <option value="creative">إبداعي</option>
+    </select>
+  </header>
+
+  <div id="chat" class="chat"></div>
+
+  <div class="input-area">
+    <textarea id="message" placeholder="اكتب سؤالك أو الصق الكود هنا..." rows="1"></textarea>
+    <button id="send">إرسال</button>
+  </div>
+</div>
+
+<!-- لوحة الإعدادات -->
+<div class="modal" id="settingsModal">
+  <div class="modal-box">
+    <h2>⚙ الإعدادات</h2>
+
+    <div class="setting-row">
+      <span>حجم الخط</span>
+      <div class="font-controls">
+        <button id="fontMinus">A-</button>
+        <span id="fontValue">14</span>
+        <button id="fontPlus">A+</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <span>الوضع الليلي دائمًا</span>
+      <label class="switch">
+        <input type="checkbox" id="darkToggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <button id="closeSettings" class="btn-primary full">تم</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
