@@ -260,7 +260,7 @@ let currentController = null;
 
 async function send() {
   const text = msgBox.value.trim();
-  if (!text) return;
+  if (!text && !pendingImage) return;
   let s = getCurrent();
   if (!s) { newSession(); s = getCurrent(); }
 

@@ -90,8 +90,11 @@ async def chat(request: dict):
     if not message and not image:
         return {"answer": "❌ الرسالة فارغة!"}
 
-    messages = build_messages(mode, message, history, request.get("lang", "ar"), image)
-    answer = await get_groq_response(messages, vision=bool(image))
+    if image:
+        return {"answer": "⚠️ عذرًا، ميزة تحليل الصور غير متاحة حاليًا. جرّب تكتب سؤالك نصيًا."}
+
+    messages = build_messages(mode, message, history, request.get("lang", "ar"))
+    answer = await get_groq_response(messages)
 
     return {"answer": answer}
 
