@@ -30,35 +30,45 @@ SYSTEM_PROMPTS = {
     "creative": "أنت كاتب إبداعي. اكتب بأسلوب جميل وإبداعي مع خيال."
 }
 
-def build_messages(mode, user_message, history):
+def build_messages(mode, user_message, history, lang="ar", image=None):
     system_prompt = SYSTEM_PROMPTS.get(mode, SYSTEM_PROMPTS["general"])
+    system_prompt += " Always respond in English." if lang == "en" else " أجب دائمًا باللغة العربية."
     messages = [{"role": "system", "content": system_prompt}]
-    
+
     for msg in history[-20:]:
         role = msg.get("role", "user")
         if role == "bot":
             role = "assistant"
         messages.append({"role": role, "content": msg.get("content", "")})
-    
-    messages.append({"role": "user", "content": user_message})
+
+    if image:
+        messages.append({
+            "role": "user",
+            "content": [
+                {"type": "text", "text": user_message or "صف هذه الصورة"},
+                {"type": "image_url", "image_url": {"url": image}}
+            ]
+        })
+    else:
+        messages.append({"role": "user", "content": user_message})
     return messages
 
-async def get_groq_response(messages):
+async def get_groq_response(messages, vision=False):
     if not GROQ_API_KEY:
         return "❌ لم يتم تعيين GROQ_API_KEY. الرجاء إضافة المفتاح في .env"
-    
+
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
-    
+
     payload = {
-        "model": "openai/gpt-oss-120b",
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct" if vision else "openai/gpt-oss-120b",
         "messages": messages,
         "temperature": 0.7,
         "max_tokens": 1024
     }
-    
+
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             response = await client.post(GROQ_API_URL, json=payload, headers=headers)
@@ -75,13 +85,14 @@ async def chat(request: dict):
     message = request.get("message", "")
     mode = request.get("mode", "general")
     history = request.get("history", [])
-    
-    if not message:
+    image = request.get("image")
+
+    if not message and not image:
         return {"answer": "❌ الرسالة فارغة!"}
-    
-    messages = build_messages(mode, message, history)
-    answer = await get_groq_response(messages)
-    
+
+    messages = build_messages(mode, message, history, request.get("lang", "ar"), image)
+    answer = await get_groq_response(messages, vision=bool(image))
+
     return {"answer": answer}
 
 @APP.get("/api/health")
